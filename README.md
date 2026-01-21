@@ -4,9 +4,10 @@ Run GitHub Copilot CLI inside a sandboxed container for safe `--yolo` mode usage
 
 ## Features
 
-- 🔒 **Isolated filesystem** - Container can only access mounted project directory
-- 🛡️ **OverlayFS mode** - Review all changes before applying to your files
+- 🔒 **Isolated filesystem** - Container can ONLY access mounted project directory
+- 🔐 **Security hardened** - No privilege escalation, read-only root filesystem
 - 🐳 **Multi-runtime** - Works with Docker and Podman
+- 🔑 **Auto-auth** - Automatically uses your `gh` CLI credentials
 - 🚀 **Easy setup** - Single command to get started
 
 ## Quick Start
@@ -18,8 +19,8 @@ Run GitHub Copilot CLI inside a sandboxed container for safe `--yolo` mode usage
 # Run with your project mounted
 ./copilot-container --mount ~/my-project
 
-# Run with --yolo (auto-accept) safely using overlay mode
-./copilot-container --mount-overlay ~/my-project --yolo
+# Run with --yolo (auto-accept) mode
+./copilot-container --mount ~/my-project --yolo
 ```
 
 ## Installation
@@ -41,40 +42,22 @@ ln -s $(pwd)/copilot-container ~/.local/bin/copilot-container
 
 ## Usage
 
-### Three Modes of Operation
-
-#### 1. Direct Mount (`--mount`)
-Changes are written directly to your project files.
+### Mount Mode (`--mount`)
+Mount your local project directory. Changes are written directly.
 
 ```bash
 ./copilot-container --mount ~/my-project
+./copilot-container --mount ~/my-project --yolo
 ```
 
-**Best for:** Trusted tasks, when you have git for recovery.
+**Recovery:** Use git - `git checkout .` or `git stash`
 
-#### 2. Overlay Mount (`--mount-overlay`) 
-Changes are isolated. Review and apply them after the session.
-
-```bash
-# Work on your project (changes go to overlay)
-./copilot-container --mount-overlay ~/my-project --yolo
-
-# Inside the container, when done:
-# Run: apply-changes.sh show   # List changes
-# Run: apply-changes.sh diff   # See detailed diff
-# Run: apply-changes.sh apply  # Apply to original files
-```
-
-**Best for:** Using `--yolo` mode, experimental changes, untrusted tasks.
-
-#### 3. Clone (`--clone`)
+### Clone Mode (`--clone`)
 Clone a fresh repo from GitHub and work on it.
 
 ```bash
 ./copilot-container --clone facebook/react
 ```
-
-**Best for:** Exploring repos, one-off tasks, contributing to open source.
 
 ### Additional Options
 
@@ -82,47 +65,21 @@ Clone a fresh repo from GitHub and work on it.
 # Start a shell instead of Copilot CLI
 ./copilot-container --mount ~/my-project --shell
 
+# Rebuild the image
+./copilot-container --build
+
 # Show help
 ./copilot-container --help
 ```
 
 ## Authentication
 
-Set your GitHub token before running:
+The container automatically detects your GitHub token from:
+1. `GH_TOKEN` environment variable
+2. `GITHUB_TOKEN` environment variable  
+3. `gh auth token` (GitHub CLI)
 
-```bash
-export GH_TOKEN="ghp_your_token_here"
-./copilot-container --mount ~/my-project
-```
-
-Or authenticate inside the container:
-```
-/login
-```
-
-## Docker Compose
-
-For easier configuration, use docker-compose:
-
-```bash
-# Edit docker-compose.yml to set your project path
-# Then run:
-docker compose run --rm copilot
-
-# Or for overlay mode:
-docker compose run --rm copilot-overlay
-```
-
-## Makefile Commands
-
-```bash
-make build                     # Build the container image
-make run PROJECT=~/my-project  # Run with direct mount
-make run-overlay PROJECT=~/my-project YOLO=1  # Run with overlay + yolo
-make run-clone REPO=owner/repo # Clone and run
-make shell PROJECT=~/my-project # Start a shell
-make clean                     # Remove the image
-```
+No manual setup needed if you're logged into `gh` CLI!
 
 ## Security Model
 
@@ -138,47 +95,41 @@ make clean                     # Remove the image
 - ❌ Docker socket
 - ❌ Host processes
 
-### Overlay Mode Protection
+### Security Features:
+- `--security-opt no-new-privileges` - Prevents privilege escalation
+- `--read-only` - Root filesystem is read-only
+- Non-root user inside container
 
-In overlay mode, even the mounted project is protected:
+## Exiting
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ Your project files (READ-ONLY)                          │
-└────────────────────────────┬────────────────────────────┘
-                             │
-         ┌───────────────────┴───────────────────┐
-         │         OverlayFS Merge               │
-         │  (What Copilot sees and modifies)     │
-         └───────────────────┬───────────────────┘
-                             │
-┌────────────────────────────┴────────────────────────────┐
-│ Changes Layer (isolated, reviewable)                     │
-└─────────────────────────────────────────────────────────┘
-```
+- **Ctrl+D** - Shutdown
+- **`/exit`** - Exit command
+- **Ctrl+C twice** - Force exit
 
 ## Requirements
 
 - Docker or Podman
 - Bash shell
-- (For overlay mode) FUSE support
+- (Optional) GitHub CLI (`gh`) for auto-authentication
 
 ## Troubleshooting
 
 ### "Permission denied" errors
 ```bash
-# Make sure the script is executable
-chmod +x copilot-container entrypoint.sh overlay-setup.sh apply-changes.sh
+chmod +x copilot-container entrypoint.sh
 ```
 
-### Overlay mode not working
-Overlay mode requires `--cap-add=SYS_ADMIN` and `/dev/fuse`. If your system doesn't support this, use `--mount` mode with git for recovery.
-
 ### Token not working
-Make sure you're exporting the token, not just setting it:
+Make sure `gh` CLI is logged in:
 ```bash
-export GH_TOKEN="your_token"  # ✓ Correct
-GH_TOKEN="your_token"         # ✗ Won't be passed to container
+gh auth status
+gh auth login  # if not logged in
+```
+
+Or set token manually:
+```bash
+export GH_TOKEN="ghp_your_token"
+./copilot-container --mount ~/my-project
 ```
 
 ## License

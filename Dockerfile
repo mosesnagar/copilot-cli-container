@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     gnupg \
     sudo \
-    fuse-overlayfs \
     rsync \
     diffutils \
     tree \
@@ -41,18 +40,13 @@ RUN npm install -g @github/copilot
 RUN useradd -m -s /bin/bash copilot \
     && echo "copilot ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Create workspace directories
-RUN mkdir -p /workspace /workspace-base /workspace-changes /workspace-work \
-    && chown -R copilot:copilot /workspace /workspace-base /workspace-changes /workspace-work
+# Create workspace directory
+RUN mkdir -p /workspace \
+    && chown -R copilot:copilot /workspace
 
-# Copy scripts
+# Copy entrypoint script
 COPY --chown=copilot:copilot entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY --chown=copilot:copilot overlay-setup.sh /usr/local/bin/overlay-setup.sh
-COPY --chown=copilot:copilot apply-changes.sh /usr/local/bin/apply-changes.sh
-
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-    /usr/local/bin/overlay-setup.sh \
-    /usr/local/bin/apply-changes.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Switch to non-root user
 USER copilot

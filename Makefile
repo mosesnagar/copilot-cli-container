@@ -1,4 +1,4 @@
-.PHONY: build run run-overlay run-clone shell clean help
+.PHONY: build run run-clone shell clean help
 
 IMAGE_NAME := copilot-cli-container
 PROJECT ?= .
@@ -11,8 +11,7 @@ help:
 	@echo ""
 	@echo "Usage:"
 	@echo "  make build                    Build the container image"
-	@echo "  make run PROJECT=/path        Run with direct mount"
-	@echo "  make run-overlay PROJECT=/path Run with overlay protection"
+	@echo "  make run PROJECT=/path        Run with project mounted"
 	@echo "  make run-clone REPO=owner/repo Clone and run"
 	@echo "  make shell PROJECT=/path      Start a shell in container"
 	@echo "  make clean                    Remove the container image"
@@ -20,7 +19,7 @@ help:
 	@echo "Examples:"
 	@echo "  make build"
 	@echo "  make run PROJECT=~/my-project"
-	@echo "  make run-overlay PROJECT=~/my-project YOLO=1"
+	@echo "  make run PROJECT=~/my-project YOLO=1"
 	@echo "  make run-clone REPO=facebook/react"
 
 build:
@@ -28,9 +27,6 @@ build:
 
 run:
 	./copilot-container --mount $(PROJECT) $(if $(YOLO),--yolo)
-
-run-overlay:
-	./copilot-container --mount-overlay $(PROJECT) $(if $(YOLO),--yolo)
 
 run-clone:
 ifndef REPO
@@ -50,6 +46,3 @@ compose-build:
 
 compose-up:
 	$(RUNTIME) compose run --rm copilot
-
-compose-overlay:
-	$(RUNTIME) compose run --rm copilot-overlay

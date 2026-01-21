@@ -17,7 +17,7 @@ services:
     # Temporary filesystems
     tmpfs:
       - /tmp
-      - /home/copilot:uid=1000,gid=1000
+      - /home/copilot:mode=1777
     
     # Environment variables (set in .env file or shell)
     environment:
@@ -25,50 +25,6 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     
     # Mount your project directory
-    # Uncomment ONE of the following:
-    
-    # Option 1: Direct mount (changes apply immediately)
+    # Uncomment and set your project path:
     # volumes:
-    #   - ./your-project:/workspace
-    
-    # Option 2: Overlay mount (review changes before applying)
-    # volumes:
-    #   - ./your-project:/workspace-base:ro
-    # cap_add:
-    #   - SYS_ADMIN
-    # devices:
-    #   - /dev/fuse
-
-  # Alternative service for overlay mode
-  copilot-overlay:
-    build: .
-    image: copilot-cli-container
-    container_name: copilot-cli-overlay
-    hostname: copilot-container
-    stdin_open: true
-    tty: true
-    
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    
-    tmpfs:
-      - /tmp
-      - /home/copilot:uid=1000,gid=1000
-      - /workspace-changes:uid=1000,gid=1000
-      - /workspace-work:uid=1000,gid=1000
-      - /workspace:uid=1000,gid=1000
-    
-    environment:
-      - GH_TOKEN=${GH_TOKEN:-}
-      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
-      - COPILOT_OVERLAY_MODE=true
-    
-    cap_add:
-      - SYS_ADMIN
-    devices:
-      - /dev/fuse
-    
-    # Mount project as read-only base
-    # volumes:
-    #   - ./your-project:/workspace-base:ro
+    #   - ~/my-project:/workspace

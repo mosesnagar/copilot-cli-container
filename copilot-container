@@ -5,10 +5,7 @@ set -e
 # 
 # Usage:
 #   copilot-container --mount /path/to/project [--yolo]
-#   copilot-container --mount-overlay /path/to/project [--yolo]
 #   copilot-container --clone owner/repo [--yolo]
-#   copilot-container --show-changes
-#   copilot-container --apply-changes
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_NAME="copilot-cli-container"
@@ -57,30 +54,31 @@ USAGE:
     copilot-container [OPTIONS]
 
 OPTIONS:
-    --mount <path>          Mount local directory (read-write, direct changes)
-    --mount-overlay <path>  Mount with OverlayFS (changes isolated until applied)
+    --mount <path>          Mount local directory (changes apply directly)
     --clone <owner/repo>    Clone fresh from GitHub
     --yolo                  Enable auto-accept mode in Copilot CLI
-    --show-changes          Show changes made in overlay mode
-    --apply-changes         Apply overlay changes to original files
     --build                 Build/rebuild the container image
     --shell                 Start a shell instead of Copilot CLI
     -h, --help              Show this help message
 
 EXAMPLES:
-    # Work on a local project (direct changes)
+    # Work on a local project
     copilot-container --mount ~/my-project
 
-    # Work safely with overlay (review changes before applying)
-    copilot-container --mount-overlay ~/my-project --yolo
-    copilot-container --show-changes
-    copilot-container --apply-changes
+    # Work with auto-accept mode (use git for recovery)
+    copilot-container --mount ~/my-project --yolo
 
     # Clone and work on a fresh repo
     copilot-container --clone facebook/react
 
 ENVIRONMENT:
     GH_TOKEN or GITHUB_TOKEN - GitHub token for Copilot authentication
+    (Auto-detected from `gh auth token` if available)
+
+SECURITY:
+    - Container can ONLY access the mounted project directory
+    - No access to your home directory, system files, or other projects
+    - Use git for recovery: `git checkout .` or `git stash`
 
 EOF
 }
@@ -120,15 +118,6 @@ run_container() {
             local abs_path=$(cd "$path" && pwd)
             run_args+=(-v "$abs_path:/workspace")
             ;;
-        mount-overlay)
-            local abs_path=$(cd "$path" && pwd)
-            run_args+=(
-                -v "$abs_path:/workspace-base:ro"
-                -e "COPILOT_OVERLAY_MODE=true"
-                --cap-add=SYS_ADMIN
-                --device /dev/fuse
-            )
-            ;;
         clone)
             run_args+=(-e "COPILOT_CLONE_REPO=$path")
             ;;
@@ -141,15 +130,6 @@ run_container() {
         --tmpfs /tmp
         --tmpfs /home/copilot:exec,mode=1777
     )
-    
-    # Allow writing to workspace directories
-    if [ "$mode" = "mount-overlay" ]; then
-        run_args+=(
-            --tmpfs /workspace-changes:uid=1000,gid=1000
-            --tmpfs /workspace-work:uid=1000,gid=1000
-            --tmpfs /workspace:uid=1000,gid=1000
-        )
-    fi
     
     # Run the container
     log_info "Starting Copilot CLI container ($mode mode)..."
@@ -169,11 +149,6 @@ while [[ $# -gt 0 ]]; do
             PATH_ARG="$2"
             shift 2
             ;;
-        --mount-overlay)
-            MODE="mount-overlay"
-            PATH_ARG="$2"
-            shift 2
-            ;;
         --clone)
             MODE="clone"
             PATH_ARG="$2"
@@ -182,18 +157,6 @@ while [[ $# -gt 0 ]]; do
         --yolo)
             COPILOT_ARGS+=("--yolo")
             shift
-            ;;
-        --show-changes)
-            log_info "Showing changes from last overlay session..."
-            # TODO: Implement persistent storage for overlay changes
-            log_error "This feature requires a running overlay container or persistent storage."
-            exit 1
-            ;;
-        --apply-changes)
-            log_info "Applying changes from last overlay session..."
-            # TODO: Implement persistent storage for overlay changes
-            log_error "This feature requires a running overlay container or persistent storage."
-            exit 1
             ;;
         --build)
             build_image
@@ -217,14 +180,14 @@ done
 
 # Validate arguments
 if [ -z "$MODE" ]; then
-    log_error "No mode specified. Use --mount, --mount-overlay, or --clone."
+    log_error "No mode specified. Use --mount or --clone."
     echo ""
     show_help
     exit 1
 fi
 
-# Validate path exists for mount modes
-if [[ "$MODE" == "mount" || "$MODE" == "mount-overlay" ]]; then
+# Validate path exists for mount mode
+if [ "$MODE" == "mount" ]; then
     if [ ! -d "$PATH_ARG" ]; then
         log_error "Directory does not exist: $PATH_ARG"
         exit 1

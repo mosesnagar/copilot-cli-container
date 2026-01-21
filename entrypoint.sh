@@ -15,20 +15,10 @@ log_warn() {
     echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
 # Check for GitHub token
 if [ -z "$GH_TOKEN" ] && [ -z "$GITHUB_TOKEN" ]; then
     log_warn "No GitHub token found. You'll need to run /login in Copilot CLI."
     log_warn "Set GH_TOKEN or GITHUB_TOKEN environment variable for auto-auth."
-fi
-
-# Handle overlay mode if enabled
-if [ "$COPILOT_OVERLAY_MODE" = "true" ]; then
-    log_info "Setting up OverlayFS for safe file editing..."
-    /usr/local/bin/overlay-setup.sh
 fi
 
 # Show workspace info
