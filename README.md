@@ -53,9 +53,39 @@ chmod +x copilot-container
 
 # Build the container image
 ./copilot-container --build
+```
 
-# (Optional) Add to PATH for global access
+### 🌍 Global Installation (Optional)
+
+Add to your PATH for access from anywhere:
+
+**Option 1: Symlink (Recommended)**
+```bash
+# Create symlink in ~/.local/bin
+mkdir -p ~/.local/bin
 ln -s $(pwd)/copilot-container ~/.local/bin/copilot-container
+
+# Make sure ~/.local/bin is in your PATH (add to ~/.bashrc or ~/.zshrc)
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+**Option 2: Alias**
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+alias copilot-container='/path/to/copilot-cli-container/copilot-container'
+
+# Or with a shorter name
+alias cpc='/path/to/copilot-cli-container/copilot-container'
+```
+
+**Option 3: Copy to system bin**
+```bash
+sudo cp copilot-container /usr/local/bin/
+```
+
+After setup, use from anywhere:
+```bash
+copilot-container --mount ~/any-project --yolo
 ```
 
 ---
