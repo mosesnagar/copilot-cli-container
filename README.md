@@ -57,7 +57,8 @@ chmod +x copilot-container
 
 ### 🌍 Global Installation (Optional)
 
-Add to your PATH for access from anywhere:
+<details>
+<summary><b>🐧 Linux / macOS</b></summary>
 
 **Option 1: Symlink (Recommended)**
 ```bash
@@ -82,6 +83,49 @@ alias cpc='/path/to/copilot-cli-container/copilot-container'
 ```bash
 sudo cp copilot-container /usr/local/bin/
 ```
+</details>
+
+<details>
+<summary><b>🪟 Windows</b></summary>
+
+> **Prerequisites:** Docker Desktop or Podman for Windows, and WSL2 or Git Bash
+
+**Option 1: WSL2 (Recommended)**
+```bash
+# Inside WSL2, follow the Linux instructions above
+wsl
+cd /mnt/c/path/to/copilot-cli-container
+./copilot-container --build
+```
+
+**Option 2: Git Bash**
+```bash
+# Clone and build
+git clone https://github.com/mosesnagar/copilot-cli-container.git
+cd copilot-cli-container
+./copilot-container --build
+
+# Add to PATH via Windows Environment Variables:
+# 1. Press Win + R, type: systempropertiesadvanced
+# 2. Click "Environment Variables"
+# 3. Edit "Path" under User variables
+# 4. Add: C:\path\to\copilot-cli-container
+```
+
+**Option 3: PowerShell Alias**
+```powershell
+# Add to your PowerShell profile (~\Documents\PowerShell\Microsoft.PowerShell_profile.ps1)
+function copilot-container { & "C:\path\to\copilot-cli-container\copilot-container" @args }
+Set-Alias -Name cpc -Value copilot-container
+```
+
+**Option 4: Batch wrapper**
+```batch
+:: Create copilot-container.cmd and add to PATH
+@echo off
+bash "C:\path\to\copilot-cli-container\copilot-container" %*
+```
+</details>
 
 After setup, use from anywhere:
 ```bash
