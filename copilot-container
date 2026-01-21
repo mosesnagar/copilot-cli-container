@@ -37,6 +37,18 @@ detect_runtime() {
     fi
 }
 
+# Auto-detect GitHub token
+detect_gh_token() {
+    # Priority: explicit env var > gh CLI
+    if [ -n "$GH_TOKEN" ]; then
+        echo "$GH_TOKEN"
+    elif [ -n "$GITHUB_TOKEN" ]; then
+        echo "$GITHUB_TOKEN"
+    elif command -v gh &> /dev/null && gh auth status &>/dev/null; then
+        gh auth token 2>/dev/null
+    fi
+}
+
 show_help() {
     cat << 'EOF'
 copilot-container - Run GitHub Copilot CLI in a sandboxed container
@@ -95,11 +107,11 @@ run_container() {
         --hostname copilot-container
     )
     
-    # Pass GitHub token
-    if [ -n "$GH_TOKEN" ]; then
-        run_args+=(-e "GH_TOKEN=$GH_TOKEN")
-    elif [ -n "$GITHUB_TOKEN" ]; then
-        run_args+=(-e "GITHUB_TOKEN=$GITHUB_TOKEN")
+    # Pass GitHub token (auto-detect from gh CLI if not set)
+    local token=$(detect_gh_token)
+    if [ -n "$token" ]; then
+        run_args+=(-e "GH_TOKEN=$token")
+        log_info "Using GitHub token from $([ -n "$GH_TOKEN" ] && echo 'GH_TOKEN' || ([ -n "$GITHUB_TOKEN" ] && echo 'GITHUB_TOKEN' || echo 'gh CLI'))"
     fi
     
     # Handle different modes
